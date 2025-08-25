@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Universal Pay • Full UPI</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body { font-family: 'Inter', sans-serif; background:#f1f5f9; }
+.fade-in { animation: fade 0.24s ease-out both; }
+@keyframes fade { from {opacity:0; transform:translateY(6px);} to {opacity:1; transform:none;} }
+.action-bar { position: sticky; bottom:0; backdrop-filter: saturate(180%) blur(6px); z-index:50; }
+#toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 60; max-width: 90%; padding:0.75rem 1rem; border-radius:1rem; text-align:center; display:none; }
+</style>
+</head>
+<body class="min-h-screen text-slate-800">
+
+<!-- Header -->
+<!-- Removed Theme Button from header -->
+<header class="bg-white/80 backdrop-blur sticky top-0 z-30 border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div class="shrink-0 rounded-2xl p-2 bg-blue-600 text-white">
+        <svg viewBox="0 0 24 24" class="w-6 h-6"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10.012 10.012 0 0 0 12 2Zm0 3.25a6.75 6.75 0 1 1-6.75 6.75A6.758 6.758 0 0 1 12 5.25Z" opacity=".18"/><path fill="currentColor" d="M7 12a5 5 0 0 1 8.66-3.54l-1.41 1.41A3 3 0 0 0 9.88 12Zm10 0a5 5 0 0 1-8.66 3.54l1.41-1.41A3 3 0 0 0 14.12 12Z"/></svg>
+      </div>
+      <div class="flex-1">
+        <h1 class="text-lg font-semibold">Universal Pay</h1>
+        <p class="text-xs text-slate-500 -mt-0.5">UPI • Cards • Bank • NetBanking • QR</p>
+      </div>
+    </div>
+  </header>
+  
+
+<main class="max-w-6xl mx-auto p-4 grid lg:grid-cols-3 gap-4 pb-28">
+  <!-- Left Form -->
+  <section class="lg:col-span-2 bg-white rounded-2xl shadow p-4 sm:p-6">
+    <div class="grid sm:grid-cols-3 gap-4 mb-4">
+      <div class="sm:col-span-2">
+        <label class="block text-sm font-medium text-slate-600">Send to</label>
+        <input id="payee" type="text" placeholder="Name / UPI / Account" class="mt-1 w-full rounded-xl border px-3 py-2 focus:ring-4 focus:ring-blue-200"/>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-600">Amount (?)</label>
+        <input id="amount" type="number" min="1" max="20000" placeholder="0" class="mt-1 w-full rounded-xl border px-3 py-2 focus:ring-4 focus:ring-blue-200"/>
+        <p class="text-xs text-slate-500 mt-1">Max ?20,000</p>
+      </div>
+      <div class="sm:col-span-3">
+        <label class="block text-sm font-medium text-slate-600">Notes (optional)</label>
+        <input id="note" type="text" placeholder="What's this for?" class="mt-1 w-full rounded-xl border px-3 py-2 focus:ring-4 focus:ring-blue-200"/>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 overflow-auto pb-1 mb-4" role="tablist">
+      <button class="tabBtn active px-3 py-2 rounded-full bg-blue-600 text-white" data-tab="upi-apps">UPI Apps</button>
+      <button class="tabBtn px-3 py-2 rounded-full border" data-tab="qr">Pay via Scanner</button>
+      <button class="tabBtn px-3 py-2 rounded-full border" data-tab="bank">Account No</button>
+      <button class="tabBtn px-3 py-2 rounded-full border" data-tab="netbanking">Net Banking</button>
+      <button class="tabBtn px-3 py-2 rounded-full border" data-tab="cards">Cards</button>
+    </div>
+
+    <!-- Panels -->
+    <div class="space-y-6">
+      <!-- UPI Apps -->
+      <div id="panel-upi-apps" class="panel fade-in">
+        <p class="text-sm text-slate-600 mb-3">Choose app and pay via UPI ID.</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          <button class="appBtn p-3 bg-white border rounded-2xl" data-app="gpay">Google Pay</button>
+          <button class="appBtn p-3 bg-white border rounded-2xl" data-app="phonepe">PhonePe</button>
+          <button class="appBtn p-3 bg-white border rounded-2xl" data-app="paytm">Paytm</button>
+          <button class="appBtn p-3 bg-white border rounded-2xl" data-app="amazon">Amazon Pay</button>
+        </div>
+        <div class="grid sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2">
+            <label class="block text-sm font-medium text-slate-600">UPI ID</label>
+            <input id="upiIdApps" type="text" placeholder="e.g. user@ybl" class="mt-1 w-full rounded-xl border px-3 py-2 focus:ring-4 focus:ring-blue-200"/>
+          </div>
+          <div class="flex items-end">
+            <button id="payUpiBtn" class="w-full rounded-xl bg-slate-900 text-white py-2 hover:bg-slate-800">Pay</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- QR -->
+      <div id="panel-qr" class="panel hidden fade-in">
+        <p class="text-sm text-slate-600 mb-2">Use camera or paste UPI/QR string.</p>
+        <input id="qrText" type="text" placeholder="upi://pay?pa=user@ybl&pn=Name&am=1" class="w-full rounded-xl border px-3 py-2"/>
+        <button id="payQrBtn" class="mt-2 w-full rounded-xl bg-slate-900 text-white py-2 hover:bg-slate-800">Pay via QR</button>
+      </div>
+
+      <!-- Bank -->
+      <div id="panel-bank" class="panel hidden fade-in">
+        <div class="grid sm:grid-cols-2 gap-3">
+          <input id="acct" placeholder="Account Number" class="rounded-xl border px-3 py-2"/>
+          <input id="acct2" placeholder="Confirm Account" class="rounded-xl border px-3 py-2"/>
+          <input id="ifsc" placeholder="IFSC" class="rounded-xl border px-3 py-2"/>
+          <input id="bene" placeholder="Beneficiary Name" class="rounded-xl border px-3 py-2"/>
+        </div>
+        <button id="payBankBtn" class="mt-2 w-full rounded-xl bg-blue-600 text-white py-2 hover:bg-blue-700">Pay via Bank</button>
+      </div>
+
+      <!-- NetBanking -->
+      <div id="panel-netbanking" class="panel hidden fade-in">
+        <select id="nbBank" class="w-full rounded-xl border px-3 py-2 mb-2">
+          <option value="">Select Bank</option>
+          <option>HDFC Bank</option><option>ICICI Bank</option><option>SBI</option><option>Axis Bank</option>
+        </select>
+        <input id="nbUser" placeholder="NetBanking User ID" class="w-full rounded-xl border px-3 py-2"/>
+        <button id="payNetBtn" class="mt-2 w-full rounded-xl bg-blue-600 text-white py-2 hover:bg-blue-700">Pay via NetBanking</button>
+      </div>
+
+      <!-- Cards -->
+      <div id="panel-cards" class="panel hidden fade-in">
+        <input id="card" placeholder="Card Number" class="w-full rounded-xl border px-3 py-2 mb-2"/>
+        <div class="grid sm:grid-cols-2 gap-2">
+          <input id="exp" placeholder="MM/YY" class="rounded-xl border px-3 py-2"/>
+          <input id="cvv" placeholder="CVV" class="rounded-xl border px-3 py-2"/>
+        </div>
+        <input id="cname" placeholder="Cardholder Name" class="w-full rounded-xl border px-3 py-2 mt-2"/>
+        <button id="payCardBtn" class="mt-2 w-full rounded-xl bg-blue-600 text-white py-2 hover:bg-blue-700">Pay via Card</button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Right Quick Pay -->
+  <aside class="space-y-4">
+    <div class="bg-white rounded-2xl shadow p-4">
+      <h2 class="font-semibold mb-2">Quick Pay</h2>
+      <div class="grid grid-cols-3 gap-3">
+        <button class="quickBtn" data-upi="9898989898@ybl">Dinner</button>
+        <button class="quickBtn" data-upi="rent@okicici">Rent</button>
+        <button class="quickBtn" data-upi="schoolfees@okaxis">Fees</button>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<!-- Action Bar -->
+<div class="action-bar border-t border-slate-200 bg-white/80">
+  <div class="max-w-6xl mx-auto p-3 flex flex-col sm:flex-row gap-3 items-center">
+    <div class="flex items-center gap-2 text-sm text-slate-600">
+      <span>Method:</span>
+      <span id="methodBadge" class="rounded-full bg-slate-900 text-white text-xs px-2 py-1">UPI Apps</span>
+    </div>
+    <div class="flex-1"></div>
+    <button id="sendBtn" class="w-full sm:w-auto rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 font-semibold">Send Money</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg"></div>
+
+<script>
+// Utils
+function $(s){ return document.querySelector(s); }
+function $$(s){ return document.querySelectorAll(s); }
+function toast(msg,success=true){ const t=$('#toast'); t.textContent=msg; t.style.display='block'; t.style.backgroundColor=success?'#1f2937':'#b91c1c'; setTimeout(()=>{t.style.display='none'},2000);}
+function isValidUPI(v){ return /^[\w.-]+@[\w]+$/.test(v); }
+
+// Tabs
+$$('.tabBtn').forEach(btn=>btn.addEventListener('click',()=>{ 
+  $$('.tabBtn').forEach(b=>b.classList.remove('active','bg-blue-600','text-white')); 
+  btn.classList.add('active','bg-blue-600','text-white'); 
+  const id = btn.dataset.tab; 
+  $$('.panel').forEach(p=>p.classList.add('hidden')); 
+  $(`#panel-${id}`).classList.remove('hidden'); 
+  $('#methodBadge').textContent=btn.textContent;
+}));
+
+// Theme
+$('#themeBtn').addEventListener('click',()=>document.body.classList.toggle('dark'));
+
+// Quick Pay
+$$('.quickBtn').forEach(b=>b.addEventListener('click',()=>{
+  $('#payee').value=b.textContent;
+  $('#upiIdApps').value=b.dataset.upi;
+  toast('Filled from Quick Pay');
+}));
+
+// Pay via UPI Apps
+$('#payUpiBtn').addEventListener('click',()=>{
+  const upi=$('#upiIdApps').value;
+  const amt=$('#amount').value || 0;
+  if(!isValidUPI(upi)){ return toast('Enter valid UPI ID',false); }
+  const selectedApp=$('.appBtn.active')?.dataset.app || 'gpay';
+  let link = `upi://pay?pa=${upi}&pn=${$('#payee').value || 'Receiver'}&am=${amt}&cu=INR`;
+  if(selectedApp==='gpay') link = `intent://pay?pa=${upi}&pn=${$('#payee').value || 'Receiver'}&am=${amt}&cu=INR#Intent;package=com.google.android.apps.nbu.paisa.user;scheme=upi;end;`;
+  else if(selectedApp==='phonepe') link = `upi://pay?pa=${upi}&pn=${$('#payee').value || 'Receiver'}&am=${amt}&cu=INR&package=com.phonepe.app`;
+  else if(selectedApp==='paytm') link = `upi://pay?pa=${upi}&pn=${$('#payee').value || 'Receiver'}&am=${amt}&cu=INR&package=net.one97.paytm`;
+  else if(selectedApp==='amazon') link = `upi://pay?pa=${upi}&pn=${$('#payee').value || 'Receiver'}&am=${amt}&cu=INR&package=in.amazon.merchant`;  
+  window.location.href = link;
+  toast(`Opening ${selectedApp}...`);
+});
+
+// App select - mark active properly
+$$('.appBtn').forEach(b=>{
+    b.addEventListener('click',()=>{
+      $$('.appBtn').forEach(a=>{
+        a.classList.remove('border-blue-600','border-2','active');
+      }); 
+      b.classList.add('border-blue-600','border-2','active'); // add active class
+    });
+  });
+  
+  // Pay via UPI Apps
+  $('#payUpiBtn').addEventListener('click',()=>{
+    const upi=$('#upiIdApps').value;
+    const amt=$('#amount').value || 0;
+    if(!isValidUPI(upi)){ return toast('Enter valid UPI ID',false); }
+    
+    const selectedApp=$('.appBtn.active')?.dataset.app;
+    if(!selectedApp) return toast('Select an app', false);
+  
+    let link = `upi://pay?pa=${upi}&pn=${$('#payee').value || 'Receiver'}&am=${amt}&cu=INR`;
+  
+    if(selectedApp==='gpay') 
+        link = `intent://pay?pa=${upi}&pn=${$('#payee').value || 'Receiver'}&am=${amt}&cu=INR#Intent;package=com.google.android.apps.nbu.paisa.user;scheme=upi;end;`;
+    else if(selectedApp==='phonepe') 
+        link = `upi://pay?pa=${upi}&pn=${$('#payee').value || 'Receiver'}&am=${amt}&cu=INR&package=com.phonepe.app`;
+    else if(selectedApp==='paytm') 
+        link = `upi://pay?pa=${upi}&pn=${$('#payee').value || 'Receiver'}&am=${amt}&cu=INR&package=net.one97.paytm`;
+    else if(selectedApp==='amazon') 
+        link = `upi://pay?pa=${upi}&pn=${$('#payee').value || 'Receiver'}&am=${amt}&cu=INR&package=in.amazon.merchant`;
+  
+    window.location.href = link;
+    toast(`Opening ${selectedApp}...`);
+  });
+  
+// Demo payments
+$('#sendBtn').addEventListener('click',()=>{
+  toast('Please select a UPI app or payment method',true);
+});
+
+</script>
+</body>
+</html>
